@@ -12,7 +12,6 @@ Metadata:
           - VpcCidr
           - EcsInstanceSubnets
           - LbSubnets
-          - SSLCert
           - LBScheme
       - Label:
           default: Aqua Security Configuration
@@ -51,8 +50,10 @@ Metadata:
         default: Enable Multi-AZ RDS
       ClusterName:
         default: Name of ecs cluster
-      SSLCert:
-        default: SSL cert ARN
+        Type: String
+        MinLength: '5'
+        MaxLength: '12'
+        AllowedPattern: '[a-z0-9]*'
 Parameters:
   AquaServerImage:
     Type: String
@@ -156,12 +157,6 @@ Parameters:
   ClusterName:
     Description: Name of ecs cluster to be created
     Type: String
-    MinLength: '5'
-    MaxLength: '12'
-    AllowedPattern: '[a-z0-9]*'
-  SSLCert:
-    Description: ARN of the SSL cert to be used with console web UI LB
-    Type: String
   ActiveActive: 
     Description: Active Active configuration for aqua console 
     Type: String
@@ -169,10 +164,11 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-
+      
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, true ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, false ]
+  
 Resources:
   # ECS Cluster
   ECSCluster:
@@ -455,11 +451,8 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref AquaConsoleTargetGroup
       LoadBalancerArn: !Ref AquaConsoleLB
-      Port: '443'
-      Protocol: HTTPS
-      Certificates:
-        - CertificateArn: !Ref SSLCert
-      SslPolicy: ELBSecurityPolicy-FS-1-2-Res-2019-08
+      Port: '80'
+      Protocol: HTTP
   AquaConsoleTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     DependsOn:
@@ -716,8 +709,8 @@ Resources:
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '8080'
-          ToPort: '8080'
+          FromPort: '80'
+          ToPort: '80'
           CidrIp: !Ref AquaConsoleAccess
         - IpProtocol: tcp
           FromPort: '443'
@@ -854,7 +847,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: Private
-      #BucketName: !Sub '${AWS::StackName}-lb-accesslogs'
       BucketName: !Sub '${ClusterName}-lb-accesslogs'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
@@ -984,7 +976,7 @@ Outputs:
     Description: URL to access Aqua Security Console
     Value: !Join
       - ''
-      - - 'https://'
+      - - 'http://'
         - !GetAtt
           - AquaConsoleLB
           - DNSName
