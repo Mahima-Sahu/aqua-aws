@@ -189,6 +189,8 @@ Parameters:
 Conditions:
   CreateActiveActive: !Equals [ !Ref ActiveActive, true ]
   NotCreateActiveActive: !Equals [ !Ref ActiveActive, false ]
+
+Conditions:
   CreateAuditrds: !Equals [!Ref AuditRDS, 'Yes']
   ReplaceAuditrds: !Equals [!Ref AuditRDS, 'No']
 
